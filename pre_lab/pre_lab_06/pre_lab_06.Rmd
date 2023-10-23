@@ -156,4 +156,4 @@ maryland_zcta <- maryland_zcta |> mutate(ZCTA5N = as.character(ZCTA5N))
 maryland_zcta
 ```
 
-Now we can join this dataframe to other zip code data where the zip code column is text, not numbers.
+Now we can join this dataframe to other zip code data where the zip code column is text, not numbers. text
