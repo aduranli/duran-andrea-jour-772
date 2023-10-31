@@ -93,7 +93,7 @@ md  |>
 
 Which zip code has the highest rate of calls? Which has the lowest?
 
-**A3: 20877 has the highest rate of calls with 1.30 per 1000 people and 20707 has the lowest with 0.03 calls per 1,000 people. ** 
+**A3: 20877 has the highest rate of calls with 1.30 per 1000 people and 20707 has the lowest with 0.03 calls per 1,000 people. I had to ask Chat. GPT for the variable pertaining to the total 18 and up population and it gave me B01003_001.** 
 
 ```{r}
 
