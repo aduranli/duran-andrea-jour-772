@@ -40,7 +40,7 @@ You'll need your Census API Key:
 ```{r echo=FALSE}
 
 install=TRUE
-census_api_key("5ee008c8b3892329420bc0b61f251ab267bc9e3f")
+census_api_key("")
 ```
 
 ## Load and view ACS variables
