@@ -129,15 +129,9 @@ electric_cars_pop_md <- electric_cars_md |> left_join(md_county_population, join
   mutate(total = july_2020 + march_2023) |> 
   mutate(per_capita = (total/estimate)*1000) |> 
   arrange(desc(per_capita)) |> 
-  #intptlat = as.numeric(intptlat) |> 
-  #intptlon = as.numeric(intptlon) |> 
   glimpse()
 
-st_as_sf(electric_cars_pop_md, coords = c("geometry"))
 mapview(electric_cars_pop_md, zcol = 'per_capita')
-
-electric_cars_pop_md <- st_as_sf(electric_cars_pop_md, coords = c("intptlat", "intptlon"), crs = 4326)
-
 
 ```
 
