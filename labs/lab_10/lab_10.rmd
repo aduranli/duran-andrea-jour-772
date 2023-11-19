@@ -106,7 +106,7 @@ Finally, make a second county map showing the per capita rate. What counties sta
 
 **A3.Caroline County has had the highest percent change in increase of electric and hybrid cars with an increase of over 400%. Electric and hybrid cars have seen a drastic increase all over Maryland with even the county with the fewest electric cars (Dorchester with 50 in 2020) with an over 100% increase. What has made these cars so much more accessible and affordable that now a lot more people have them?**
 
-**Now in the map it shows that Montgomery and Howard Counties have the highest number of electric and hybrid cars per capita. This map differs from the first one because they highlight different counties. The first one highlights Queen Anne's, Kent, Carroll, Prince George's counties and Baltimore City.**
+**Now in the map it shows that Howard and Montgomery Counties have the highest number of electric and hybrid cars per 1000 people. This map differs from the first one because they highlight different counties. The first one highlights Queen Anne's, Kent, Carroll, Prince George's counties and Baltimore City.**
 
 ```{r}
 ev_2020_2023 <- read_csv("data/ev_2020_2023.csv")
@@ -126,9 +126,9 @@ md_county_population <- get_acs(geography = "county",
 
 electric_cars_pop_md <- electric_cars_md |> left_join(md_county_population, join_by(geoid)) |> 
   rename(county = name.x, name = name.y) |> 
-  mutate(total = july_2020 + march_2023) |> 
-  mutate(per_capita = (total/estimate)*1000) |> 
+  mutate(per_capita = (march_2023/estimate)*1000) |> 
   arrange(desc(per_capita)) |> 
+  rename(population = estimate) |> 
   glimpse()
 
 mapview(electric_cars_pop_md, zcol = 'per_capita')
