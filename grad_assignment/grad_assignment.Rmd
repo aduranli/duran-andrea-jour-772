@@ -1,0 +1,218 @@
+---
+title: "Graduate Student Assignment" https://opendata.maryland.gov/education/County-Board-of-Education-Spending-Disclosures/t6vk-rvwe
+
+author: Andrea Durán 
+date: December 2, 2023
+output:
+  html_document:
+    theme: cerulean
+    highlight: pygments
+    toc: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction 
+
+For this assignment, I selected the County Board of Education - Spending Disclosures from the Open Data Portal from the Maryland.gov website.
+
+## Load libraries
+
+Loading required libraries for this analysis.
+
+```{r echo=FALSE, message=FALSE}
+library(tidyverse)
+library(dplyr)
+library(janitor)
+library(readr)
+library(refinr)
+library(tidycensus)
+
+install=TRUE
+census_api_key("5ee008c8b3892329420bc0b61f251ab267bc9e3f")
+```
+
+## Read In Data
+
+```{r}
+
+county_boe_spending <-read_csv("data/County_Board_of_Education_-_Spending_Disclosures.csv") 
+
+#I did not include 2022 in my analysis because the Census Data for 2022 did not have all of the counties, which is the geography that I am focusing on.
+
+#md_cp_2022 <- get_acs(geography = "county",  
+              #variables = "DP05_0019E",
+              #survey = "acs1",
+              #state = "MD",
+              #year = 2022)
+
+md_cp_2021 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2021) |> 
+  mutate(year = "2021")
+
+md_cp_2020 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2020) |> 
+  mutate(year = "2020")
+
+md_cp_2019 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2019) |> 
+  mutate(year = "2019")
+
+md_cp_2018 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2018) |> 
+  mutate(year = "2018")
+
+md_cp_2017 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2017) |> 
+  mutate(year = "2017")
+
+md_cp_2016 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2016) |> 
+  mutate(year = "2016")
+
+md_cp_2015 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2015) |> 
+  mutate(year = "2015")
+
+md_cp_2014 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2014) |> 
+  mutate(year = "2014")
+
+md_cp_2013 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2013) |> 
+  mutate(year = "2013")
+
+md_cp_2012 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2012) |> 
+  mutate(year = "2012")
+
+md_cp_2011 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2011) |> 
+  mutate(year = "2011")
+
+md_cp_2010 <- get_acs(geography = "county",
+              variables = "DP05_0019E",
+              survey = "acs5",
+              state = "MD",
+              year = 2010) |> 
+  mutate(year = "2010")
+
+md_cp_all <- bind_rows(md_cp_2010, md_cp_2011, md_cp_2012, md_cp_2013, md_cp_2014, md_cp_2015, md_cp_2016, md_cp_2017, md_cp_2018, md_cp_2019, md_cp_2020, md_cp_2021)
+
+```
+
+## Load and Cleaning Data
+
+In this section, describe the source of the data, write a basic data dictionary for data you are working with, and discuss any caveats or issues you discovered working with this data. 
+
+I made a new dataset for cleaning the original dataset and first cleaned the names of the columns and character type. Then I exported that as a CSV file and loaded it into OpenRefine to clean duplicate rows and further clean the data. First, I clustered county duplicates (ALLEGANY COUNTY BOARD OF EDUCATION = ALLEGANY COUNTY PUBLIC SCHOOLS, ALLEGANY COUNTY PUBLIC SCHOOL = ALLEGANY COUNTY PUBLIC SCHOOLS). Then I clustered payees that were similar (ex. S FREEDMAN & SONS INC = S FREEDMAN & SONS INC.). I went through both methods of clustering and each distance function until I was satisfied that none of the clusters were obvious duplicates. Then I exported the new CSV file and loaded it into this notebook. After that, I cleaned more. I made sure the agency names were all in the same format and that there were no NAs throwing off my data.
+
+```{r}
+
+clean_county_boe_spending <- county_boe_spending |> 
+  clean_names() |> 
+  rename(bmore_purpose = purpose_of_payment_baltimore_county_only) |> 
+  mutate(agency_name = str_to_upper(agency_name),
+         payee_name = str_to_upper(payee_name),
+         bmore_purpose = str_to_upper(bmore_purpose),
+         mbe = str_to_upper(mbe)) 
+
+write_csv(clean_county_boe_spending, "data/clean_county_boe_spending.csv")
+
+#This is the dataset that I read in after cleaning more it in OpenRefine.
+clean_boe_spending <- read_csv("data/clustered_clean-county-boe-spending-csv.csv") 
+
+clean_boe_spending <- clean_boe_spending |> 
+  mutate(
+    agency_name = case_when(agency_name == "BALTIMORE CITY SCHOOLS" ~ "BALTIMORE CITY PUBLIC SCHOOLS", agency_name == "BALITMORE CITY PUBLIC SCHOOLS" ~ "BALTIMORE CITY PUBLIC SCHOOLS", agency_name == "ANNE ARUNDEL CO. PUBLIC SCHOOLS" ~ "ANNE ARUNDEL COUNTY PUBLIC SCHOOLS",
+      .default = agency_name))
+
+#After I had grouped by and summarized agency names to make sure I was working with the correct number of county boards of education, I found a single row that had $18,715,233 in the amount column but no payee or agency or year tied to it--all were NA. I do not know what this number means and would have to contact the Maryland Department of Budget and Management on what this number could mean. For the tme being, in order for it not to throw off my calculations, I have to filter it out. 
+test_na <- clean_boe_spending |> 
+  filter(is.na(agency_name)) 
+
+clean_boe_spending <- clean_boe_spending |> 
+  filter(!is.na(agency_name))
+
+clean_boe_spending |> 
+  group_by(agency_name) |> 
+  summarise(total_amounts = sum(amount, na.rm = TRUE))
+
+distinct(md_cp_all, NAME)
+
+md_cp_all <- md_cp_all |> 
+  clean_names() |> 
+  mutate(name = str_to_upper(name),
+         county = substr(name, 1, nchar(name) - 10))
+
+distinct(md_cp_all, county)
+
+#NEXT STEP IS TO CREATE THE JOIN COLUMN IN THE BOE SPENDING DATAFRAME USING CASE_WHEN()
+
+
+```
+
+## Who created and maintains this data? What state program or law is connected to it?
+
+This data is provided by the County Board of Educations for the state of Maryland. The data complied is from each County Board of Education and the Dataset Owner is the Open Data Administrator. The data is also connected to the Maryland Department of Budget and Management. The state law that is connected to it is Chapter 541 of the Acts of 2019 which requires each county board of education to annually report the names of payees, their location by zip code, the amount they received, (for the Baltimore County Board of Education) the purpose for the payment and whether they are a Minority Business Enterprise (MBE), and (for Prince George's County's Board of Education) the budget data prepared under § 5-101 of the Education Article.
+
+## What does each row represent?
+
+Each row represents a vendor that received payments of at least $25,000 from a County Board of Education during a fiscal year. The payees are any party "who recieves an aggregate payment of $25,000 in a fiscal school year from a school board." It doesn't include people or parties who are employees, retirees, or (in Baltimore County) a third-party payee that accepts employee payroll-related payments.  
+
+## What is the chronological and geographic scope of this data?
+
+The chronological scope of this data is from the fiscal school year of 2010 to 2022 and geographically spans from each county in Maryland.
+
+```{r}
+clean_county_boe_spending |> 
+group_by(fiscal_year) |> 
+  summarise(count = n())
+
+clean_boe_spending |> 
+  group_by(agency_name) |> 
+  summarise(count = n()) |> 
+  arrange(agency_name)
+```
+
+
+
+
