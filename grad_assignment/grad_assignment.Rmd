@@ -32,18 +32,22 @@ library(janitor)
 library(readr)
 library(refinr)
 library(tidycensus)
+library(mapview)
+library(sf)
+library(tigris)
+library(ggplot2)
 
 install=TRUE
-census_api_key("5ee008c8b3892329420bc0b61f251ab267bc9e3f")
+census_api_key("")
 ```
 
-## Read In Data
+## Reading In Data
 
 ```{r}
 
 county_boe_spending <-read_csv("data/County_Board_of_Education_-_Spending_Disclosures.csv") 
 
-#I did not include 2022 in my analysis because the Census Data for 2022 did not have all of the counties, which is the geography that I am focusing on.
+#I did not include 2022 in my analysis because the Census Data for 2022 did not have all of the counties, which is the geography that I am focusing on. The variable I am focusing on is population estimate of people under 18 years of age.
 
 #md_cp_2022 <- get_acs(geography = "county",  
               #variables = "DP05_0019E",
@@ -162,33 +166,90 @@ clean_boe_spending <- read_csv("data/clustered_clean-county-boe-spending-csv.csv
 
 clean_boe_spending <- clean_boe_spending |> 
   mutate(
-    agency_name = case_when(agency_name == "BALTIMORE CITY SCHOOLS" ~ "BALTIMORE CITY PUBLIC SCHOOLS", agency_name == "BALITMORE CITY PUBLIC SCHOOLS" ~ "BALTIMORE CITY PUBLIC SCHOOLS", agency_name == "ANNE ARUNDEL CO. PUBLIC SCHOOLS" ~ "ANNE ARUNDEL COUNTY PUBLIC SCHOOLS",
-      .default = agency_name))
+    agency_name = case_when(agency_name == "BALTIMORE CITY SCHOOLS" ~ "BALTIMORE CITY PUBLIC SCHOOLS", agency_name == "BALITMORE CITY PUBLIC SCHOOLS" ~ "BALTIMORE CITY PUBLIC SCHOOLS", agency_name == "ANNE ARUNDEL CO. PUBLIC SCHOOLS" ~ "ANNE ARUNDEL COUNTY PUBLIC SCHOOLS", agency_name == "WORCESTER COUNTY BOARD OF ED" ~ "WORCESTER COUNTY PUBLIC SCHOOLS", agency_name == "OAKLAND, GARRETT COUNTY PUBLIC SCHOOLS" ~ "GARRETT COUNTY PUBLIC SCHOOLS", agency_name == "WORCESTER COUNTY COUNTY PUBLIC SCHOOLS" ~ "WORCESTER COUNTY PUBLIC SCHOOLS",
+      .default = agency_name)) |> 
+  glimpse()
+#Because the Census Data I want to join it to does not exist for 2022, I have to filter it out of this dataset.
 
-#After I had grouped by and summarized agency names to make sure I was working with the correct number of county boards of education, I found a single row that had $18,715,233 in the amount column but no payee or agency or year tied to it--all were NA. I do not know what this number means and would have to contact the Maryland Department of Budget and Management on what this number could mean. For the tme being, in order for it not to throw off my calculations, I have to filter it out. 
+#After I had grouped by and summarized agency names to make sure I was working with the correct number of county boards of education, I found a single row that had $18,715,233 in the amount column but no payee or agency or year tied to it--all were NA. I do not know what this number means and would have to contact the Maryland Department of Budget and Management on what this number could mean. For the the being, in order for it not to throw off my calculations, I have to filter it out. 
+
 test_na <- clean_boe_spending |> 
   filter(is.na(agency_name)) 
 
 clean_boe_spending <- clean_boe_spending |> 
   filter(!is.na(agency_name))
 
-clean_boe_spending |> 
-  group_by(agency_name) |> 
-  summarise(total_amounts = sum(amount, na.rm = TRUE))
-
-distinct(md_cp_all, NAME)
-
 md_cp_all <- md_cp_all |> 
   clean_names() |> 
   mutate(name = str_to_upper(name),
-         county = substr(name, 1, nchar(name) - 10))
+         county = substr(name, 1, nchar(name) - 10)) |> 
+  glimpse()
 
 distinct(md_cp_all, county)
-
-#NEXT STEP IS TO CREATE THE JOIN COLUMN IN THE BOE SPENDING DATAFRAME USING CASE_WHEN()
-
+distinct(md_cp_all, name)
 
 ```
+
+## Joining Data
+
+```{r}
+
+#I made a new column in the Board of Education spending data that I will join to the Census population dataframe.
+
+md_cp_all
+
+clean_boe_spending <- clean_boe_spending |> 
+ mutate(
+    county = case_when(
+      str_detect(agency_name, "ALLEGANY COUNTY PUBLIC SCHOOLS") ~ "ALLEGANY COUNTY",         
+      str_detect(agency_name, "ANNE ARUNDEL COUNTY PUBLIC SCHOOLS") ~ "ANNE ARUNDEL COUNTY",      
+      str_detect(agency_name, "BALTIMORE CITY PUBLIC SCHOOLS") ~ "BALTIMORE CITY",
+      str_detect(agency_name, "BALTIMORE COUNTY PUBLIC SCHOOLS") ~ "BALTIMORE COUNTY",
+      str_detect(agency_name, "CALVERT COUNTY PUBLIC SCHOOLS") ~ "CALVERT COUNTY",
+      str_detect(agency_name, "CAROLINE COUNTY PUBLIC SCHOOLS") ~ "CAROLINE COUNTY",
+      str_detect(agency_name, "CARROLL COUNTY PUBLIC SCHOOLS") ~ "CARROLL COUNTY",
+      str_detect(agency_name, "CECIL COUNTY PUBLIC SCHOOLS") ~ "CECIL COUNTY",
+      str_detect(agency_name, "CHARLES COUNTY PUBLIC SCHOOLS") ~ "CHARLES COUNTY",
+      str_detect(agency_name, "DORCHESTER COUNTY PUBLIC SCHOOLS") ~ "DORCHESTER COUNTY",
+      str_detect(agency_name, "FREDERICK COUNTY PUBLIC SCHOOLS") ~ "FREDERICK COUNTY",
+      str_detect(agency_name, "GARRETT COUNTY PUBLIC SCHOOLS") ~ "GARRETT COUNTY",
+      str_detect(agency_name, "HARFORD COUNTY PUBLIC SCHOOLS") ~ "HARFORD COUNTY",
+      str_detect(agency_name, "HOWARD COUNTY PUBLIC SCHOOLS") ~ "HOWARD COUNTY",
+      str_detect(agency_name, "KENT COUNTY PUBLIC SCHOOLS") ~ "KENT COUNTY",
+      str_detect(agency_name, "MONTGOMERY COUNTY PUBLIC SCHOOLS") ~ "MONTGOMERY COUNTY",
+      str_detect(agency_name, "PRINCE GEORGES' COUNTY PUBLIC SCHOOLS") ~ "PRINCE GEORGE'S COUNTY",
+      str_detect(agency_name, "QUEEN ANNE'S COUNTY PUBLIC SCHOOLS") ~ "QUEEN ANNE'S COUNTY",
+      str_detect(agency_name, "SOMERSET COUNTY PUBLIC SCHOOLS") ~ "SOMERSET COUNTY",
+      str_detect(agency_name, "ST. MARY'S COUNTY PUBLIC SCHOOLS") ~ "ST. MARY'S COUNTY",
+      str_detect(agency_name, "TALBOT COUNTY PUBLIC SCHOOLS") ~ "TALBOT COUNTY",
+      str_detect(agency_name, "WASHINGTON COUNTY PUBLIC SCHOOLS") ~ "WASHINGTON COUNTY",
+      str_detect(agency_name, "WICOMICO COUNTY PUBLIC SCHOOLS") ~ "WICOMICO COUNTY",
+      str_detect(agency_name, "WORCESTER COUNTY PUBLIC SCHOOLS") ~ "WORCESTER COUNTY",
+      .default = NA)) |> 
+  rename(year = fiscal_year) |> 
+  filter(year != "2022")
+
+#This dataset is the merged data from the Board of Education spending data per county and the estimate of population of people under 18 dataset.
+
+boe_18under_pop <- merge(md_cp_all, clean_boe_spending, by = c('county', 'year')) |> 
+  rename(under18_pop = estimate) 
+#I got merge() from Chat.GPT when I asked it "How do I join two datasets by one column that they have in common?"
+
+#I will use this dataset to make a map of Maryland by county with all the data that I have aggregated.
+
+md_counties <- counties(state = "MD", cb = TRUE) |> 
+  clean_names() |> 
+  mutate(name = str_to_upper(name),
+         namelsad = str_to_upper(namelsad)) |> 
+  rename(county = namelsad)
+glimpse(md_counties)
+
+#map_boe_18underpop <- md_counties |> left_join(boe_18under_pop, join_by(county)) |> 
+  #glimpse()
+#class(map_boe_18underpop)
+
+```
+
 
 ## Who created and maintains this data? What state program or law is connected to it?
 
@@ -213,6 +274,183 @@ clean_boe_spending |>
   arrange(agency_name)
 ```
 
+## If this data contains aggregates (totals), can you find itemized data that those totals are derived from? Do the totals match your own calculations using the itemized data?
+
+This data does not contain aggregates on it's own. When I have made totals from the data, it is based on the data already provided but the totals are my own.
+
+## THREE STORY IDEAS
+
+## Story idea 1: 
+
+From 2019 to 2021, every county decreased their spending except for Caroline County, which increased it by over 800%, even though there was was only about a 1% increase in the population of children. While Carroll County decreased their spending by -74% even though their population of children (defined as people under 18 years of age) increased by about 3%.
+
+I would like to understand why.
+
+I would speak to the Board of Education for Caroline County and ask what prompted them to spend so much and on what. They gave 33 payments to CAROLINE COUNTY COMMISSIONERS	between 2019 and 2021, so I would ask what it was for. 
+
+```{r}
+#This gives me the total amount spent by each county for each year.
+total_boe_spending <- boe_18under_pop |> 
+  group_by(county, year, under18_pop) |> 
+  summarise(total_amounts = sum(amount, na.rm = TRUE)) |> 
+  arrange(desc(total_amounts))
+
+ggplot(total_boe_spending, aes(x = year, y = total_amounts, group = county, color = county)) +
+  geom_line() +
+  labs(x = "year", y = "total_amounts", title = "county") +
+  theme_minimal()
+
+#this gives me the total population of children for each county
+total_kids <- boe_18under_pop |> 
+  group_by(county, year) |> 
+  summarise(total_children = sum(under18_pop, na.rm = TRUE)) |> 
+  arrange(desc(total_children))
+
+ggplot(total_kids, aes(x = year, y = total_children, group = county, color = county)) +
+  geom_line() +
+  labs(x = "year", y = "total_kids", title = "county") +
+  theme_minimal()
+
+#this table was to verify that my joined dataframe was accurate in representing Census data
+mdtotal_kids_census <- md_cp_all |> 
+  group_by(county, year) |> 
+  summarise(total_children = sum(estimate, na.rm = TRUE)) |> 
+  arrange(desc(total_children))
+
+ggplot(mdtotal_kids_census, aes(x = year, y = total_children, group = county, color = county)) +
+  geom_line() +
+  labs(x = "year", y = "total_kids", title = "county") +
+  theme_minimal()
+
+#This showed that a lot of the county BOEs are missing data from before 2019, so I have to filter the data from 2019 onwards.
+
+total_boe_spending_18 <- total_boe_spending |> 
+  filter(year >= 2018)
+
+ggplot(total_boe_spending_18, aes(x = year, y = total_amounts, group = county, color = county)) +
+  geom_line() +
+  labs(x = "year", y = "total_amounts", title = "county") +
+  theme_minimal()
+
+#I am trying to find the percent change in BOE spending for the years that I have data from all the counties. 
+
+#this dataset was to confirm that my totals in my joined dataset were the same as the dataset I joined Census data to.
+total_only_boe_spending <- clean_boe_spending |> 
+  group_by(county, year) |> 
+  summarise(total_amounts = sum(amount, na.rm = TRUE)) |> 
+  arrange(desc(total_amounts))
+
+#This was to see the percent change between 2019 and 2021 because I have data for most of the counties beginning in 2019 for their BOE's spending.
+total_boe_spending_21 <- total_boe_spending |> 
+  filter(year == 2021) |> 
+  rename(amounts_21 = total_amounts, year_2021 = year, under18_pop_21 = under18_pop)
+  
+
+total_boe_spending_just19 <- total_boe_spending |> 
+  filter(year == 2019) |> 
+  rename(amounts_19 = total_amounts, year_2019 = year, under18_pop_19 = under18_pop)
+
+boe_spending_pc_change <- merge(total_boe_spending_21, total_boe_spending_just19, by = "county") |> 
+  mutate(pc_amount = ((amounts_21-amounts_19)/amounts_19)*100, pc_pop = ((under18_pop_21-under18_pop_19)/under18_pop_19)*100) |> 
+  arrange(pc_amount)
+
+map_pc_change <- md_counties |> left_join(boe_spending_pc_change, join_by(county)) |> 
+  glimpse()
+
+class(map_pc_change)
+
+mapview(map_pc_change, zcol = "pc_amount")
+
+````
+```{r}
+#This was to see more about Caroline County and see if any of their payees stood out.
+boe_18under_pop |> 
+  filter(year >= 2019, county == "CAROLINE COUNTY") |> 
+  group_by(payee_name) |> 
+  summarise(count = n()) |> 
+  arrange(desc(count))
+```
+
+## Story idea 2: 
+
+Changes in student population from 2016 to 2017. In 2017, across all counties there was an enormous drop in student population. Meanwhile, for the BOEs that I have data for, spending during that time increased by about 7% in Baltimore County.
+
+I would like to ask Baltimore County BOE what happened during that time for them to increase their spending during a large drop in the population of children as well as other counties. I would have to investigate it at a state level and ask the Maryland State Department of education to explain the steep drop.
+
+
+```{r}
+#for the counties that I do have data for in 2016, when there was a drastic decrease in student population, I filter out the counties for which their BOEs do not have data.
+
+total_boe_spending_16 <- total_boe_spending |> 
+  filter(year == 2016) |> 
+  rename(amounts_16 = total_amounts, year_2016 = year, under18_pop_16 = under18_pop)
+
+total_boe_spending_17 <- total_boe_spending |> 
+  filter(year == 2017) |> 
+  rename(amounts_17 = total_amounts, year_2017 = year, under18_pop_17 = under18_pop)
+
+children_pc_change <- merge(total_boe_spending_17, total_boe_spending_16, by = "county") |> 
+  mutate(pc_amount = ((amounts_17-amounts_16)/amounts_16)*100, pc_pop = ((under18_pop_17-under18_pop_16)/under18_pop_16)*100) |> 
+  arrange(pc_amount)
+
+map_pc_change_children <- md_counties |> left_join(children_pc_change, join_by(county)) |> 
+  glimpse()
+
+mapview(map_pc_change_children, zcol = "pc_amount")
+  
+```
+
+## Story Idea 3:
+
+Which payee was paid the most?
+
+Though I know which county has paid the most (Prince George's County) and has the highest overall population of children (Prince George's County), I would like to know more about the payees.
+
+What I found that between the years of 2019 to 2021, there were substaintial cuts to health care and retirement, such as CAREFIRST BLUECROSS/BLUESHIELD losing 52% and MARYLAND STATE RETIREMENT
+losing about 25%. 
+
+I would have to investigate more by speaking with Maryland State Department of Education. To delve deeper, I would investigate which counties paid less to those agencies. 
+
+```{r}
+
+payee_21 <- boe_18under_pop |> 
+  filter(year == 2021) |> 
+  group_by(payee_name, year) |> 
+  summarise(total_amounts = sum(amount, na.rm = TRUE)) |> 
+  rename(amounts_21 = total_amounts, year_2021 = year)
+
+
+payee_19 <- boe_18under_pop |> 
+  filter(year == 2019) |> 
+  group_by(payee_name, year) |> 
+  summarise(total_amounts = sum(amount, na.rm = TRUE)) |> 
+  rename(amounts_19 = total_amounts, year_2019 = year) 
+  
+#I analyzed, like the dataset above, from 2019 because that is the most comprehensive starting point.
+
+payee_joined <- merge(payee_19, payee_21, by = "payee_name") |> 
+  mutate(dif_amount = (amounts_21-amounts_19), pc_change = ((amounts_21-amounts_19)/amounts_19)*100) |> 
+  arrange(dif_amount)
+
+```
+
+
+
+## LIMITATIONS
+
+There are 7,783 rows where there is no data on the amount of money given to payees from the Boards of Education. So there are Boards of Education, there are payees, but there is no data on the amount given, if at all. I would have to check with the Maryland Department of Budget and Management as well as the individual counties on what this means; if the data is missing or if it means 0. The only counties that have 0 amounts paid are Charles and Allegany counties. 
+
+```{r}
+clean_boe_spending |> filter(is.na(amount))
+
+clean_boe_spending |> filter(amount >= 0) |> 
+  arrange(amount)
+```
+
+The dataset that I pulled from the Boards of Education also was missing data from many counties before the year 2019, which limited my results and analyses.
+
+
+Another limitation is that I do not have complete Census data for the year 2022, so I could not use it and I had to filter it out of the BOE spending dataset.
 
 
 
